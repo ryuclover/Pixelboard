@@ -48,7 +48,7 @@ const isValidPasswordInput = (password) =>
 const isValidPasswordForRegistration = (password) =>
   typeof password === 'string' && password.length >= 8 && password.length <= 128;
 const isValidUsernameForRegistration = (username) =>
-  /^[a-zA-Z0-9_.-]{3,32}$/.test(username);
+  /^(?=.{3,32}$)(?![._-])(?!.*[._-]{2})[a-zA-Z0-9._-]*[a-zA-Z0-9]$/.test(username);
 const createToken = (user) =>
   jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN
@@ -103,7 +103,9 @@ app.post('/auth/register', async (req, res) => {
     !isValidUsernameForRegistration(normalizedUsername) ||
     !isValidPasswordForRegistration(password)
   ) {
-    return res.status(400).json({ error: 'Invalid username or password' });
+    return res.status(400).json({
+      error: 'Username must be 3-32 chars (letters, numbers, ._-), and password must be 8-128 chars'
+    });
   }
 
   try {
