@@ -47,7 +47,3 @@ npm run dev
 ```
 The frontend will run on `http://localhost:5173`.
 
-## 🌐 Deployment
-
-- **Frontend:** Can be easily deployed to [Vercel](https://vercel.com/) or Netlify. Set the `VITE_API_URL` environment variable to point to your backend URL.
-- **Backend:** Can be deployed to [Render](https://render.com/) or Railway.
