@@ -34,9 +34,15 @@ To run this project on your machine, you need [Node.js](https://nodejs.org/) ins
 ```bash
 cd backend
 npm install
-npm run dev
+cp .env.example .env
+npm start
 ```
 The backend will run on `http://localhost:3001`.
+
+Backend environment variables:
+- `JWT_SECRET` (**required**): long random secret used to sign auth tokens.
+- `ALLOWED_ORIGINS` (recommended): comma-separated list of allowed frontend origins.
+- `PORT` (optional): backend port (default `3001`).
 
 ### 2. Start the Frontend Server
 Open a new terminal window:
@@ -46,4 +52,3 @@ npm install
 npm run dev
 ```
 The frontend will run on `http://localhost:5173`.
-
