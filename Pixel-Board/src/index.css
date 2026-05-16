@@ -1,0 +1,262 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Soft Modern Pixel Art Palette (based on user reference) */
+  --bg-primary: #1e2028; /* Dark blue-grey background */
+  --bg-secondary: #2a2c36; /* Panel background */
+  --bg-tertiary: #353845; /* Lighter panel/hover */
+  --bg-card: #22242c; /* Card background */
+  --border-color: #15161c; /* Very dark border */
+  --border-glow: #15161c;
+
+  --accent-gold: #d4a35c; /* Soft gold */
+  --accent-gold-light: #e8bd7d;
+  --accent-gold-dark: #a3783b;
+  --accent-brown: #8c4a4a; /* Soft red/brown for active elements */
+  --accent-brown-light: #ab5c5c;
+  --text-primary: #e2d5c3; /* Off-white/beige text */
+  --text-secondary: #a19a93; /* Muted text */
+  --text-muted: #706b66;
+  --accent-red: #c95151;
+  --accent-blue: #5b7da6;
+  --accent-green: #689c62;
+
+  --text-primary: #e8d5a3;
+  --text-secondary: #a89060;
+  --text-muted: #666;
+  --text-white: #f0f0f0;
+
+  /* Pixel font */
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-vt: 'VT323', monospace;
+  --font-body: 'Inter', sans-serif;
+
+  /* Spacing */
+  --radius: 4px;
+  --radius-md: 6px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  /* Subtle dark checkerboard background like in reference Image 3 */
+  background-image: 
+    linear-gradient(45deg, #1b1d24 25%, transparent 25%, transparent 75%, #1b1d24 75%, #1b1d24),
+    linear-gradient(45deg, #1b1d24 25%, transparent 25%, transparent 75%, #1b1d24 75%, #1b1d24);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+}
+
+/* Pixel-style scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-gold-dark);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
+}
+
+/* Pixel border style */
+.pixel-border {
+  border: 3px solid var(--border-glow);
+  box-shadow: inset 0 0 0 1px #000, 4px 4px 0 #000;
+  image-rendering: pixelated;
+}
+
+/* Button base */
+.btn {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  padding: 10px 18px;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: transform 0.1s, box-shadow 0.1s;
+  image-rendering: pixelated;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+.btn-primary {
+  background: var(--accent-gold);
+  color: #1a1200;
+  border: 2px solid var(--accent-gold-dark);
+  box-shadow: 3px 3px 0 var(--accent-gold-dark);
+}
+.btn-primary:hover {
+  background: var(--accent-gold-light);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 2px solid var(--border-glow);
+  box-shadow: 3px 3px 0 #000;
+}
+.btn-secondary:hover {
+  background: var(--accent-brown);
+}
+
+.btn-danger {
+  background: var(--accent-red);
+  color: #fff;
+  border: 2px solid #8e1a1a;
+  box-shadow: 3px 3px 0 #8e1a1a;
+}
+.btn-danger:hover {
+  background: #e74c3c;
+}
+
+/* Card */
+.pixel-card {
+  background: var(--bg-card);
+  border: 3px solid var(--border-glow);
+  box-shadow: 4px 4px 0 #000, inset 0 0 0 1px rgba(201,168,76,0.1);
+  padding: 20px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.pixel-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
+}
+
+/* Tag */
+.pixel-tag {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  padding: 4px 8px;
+  background: var(--accent-brown);
+  color: var(--text-primary);
+  border: 1px solid var(--accent-gold-dark);
+}
+
+/* Scanline overlay */
+.scanlines::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Animated noise texture */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.95; }
+  94% { opacity: 1; }
+  96% { opacity: 0.98; }
+}
+
+/* Chess board colors */
+.light-square { background: #f0d9b5; }
+.dark-square { background: #b58863; }
+
+/* Utility */
+.text-pixel { font-family: var(--font-pixel); }
+.text-vt { font-family: var(--font-vt); }
+.text-gold { color: var(--accent-gold); }
+.text-muted { color: var(--text-muted); }
+
+/* Glow text */
+.glow-text {
+  text-shadow: 0 0 10px var(--accent-gold), 0 0 20px var(--accent-gold-dark);
+}
+
+/* Separator */
+.pixel-divider {
+  border: none;
+  border-top: 2px solid var(--border-glow);
+  margin: 16px 0;
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  padding: 3px 7px;
+  border: 1px solid;
+}
+
+.badge-players {
+  background: #1a120066;
+  color: var(--accent-gold);
+  border-color: var(--accent-gold-dark);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes pixelIn {
+  0% { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0% 0 0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-fade-in { animation: fadeIn 0.4s ease both; }
+.animate-slide-in { animation: slideIn 0.3s ease both; }
+.animate-pulse { animation: pulse 2s ease infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+/* Stagger delays */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }

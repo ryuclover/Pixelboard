@@ -1,0 +1,206 @@
+/* Chess Game Page */
+.chess-page {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .chess-page {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sidebar panel */
+.sidebar-panel {
+  background: var(--bg-secondary);
+  border: 3px solid var(--border-glow);
+  box-shadow: 4px 4px 0 #000;
+  min-width: 240px;
+}
+
+.sidebar-header {
+  background: var(--accent-brown);
+  border-bottom: 2px solid var(--border-glow);
+  padding: 12px 16px;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--text-primary);
+  text-shadow: 1px 1px 0 #000;
+  letter-spacing: 1px;
+}
+
+.sidebar-content {
+  padding: 16px;
+}
+
+/* Status badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  padding: 4px 8px;
+  border: 1px solid;
+}
+.status-badge.waiting {
+  color: #f39c12;
+  border-color: #f39c12;
+  background: rgba(243,156,18,0.1);
+  animation: pulse 1.5s ease infinite;
+}
+.status-badge.playing {
+  color: var(--accent-green);
+  border-color: var(--accent-green);
+  background: rgba(39,174,96,0.1);
+}
+.status-badge.ended {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+  background: rgba(192,57,43,0.1);
+}
+
+/* Mode selector */
+.mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.mode-btn {
+  width: 100%;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  padding: 12px;
+  border: 2px solid var(--border-glow);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  box-shadow: 3px 3px 0 #000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mode-btn:hover {
+  background: var(--accent-brown);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold-light);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #000;
+}
+.mode-btn.selected {
+  background: var(--accent-brown);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold-light);
+}
+.mode-btn-icon { font-size: 18px; }
+
+/* Moves table */
+.moves-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-vt);
+  font-size: 20px;
+}
+.moves-table th {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--text-secondary);
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+.moves-table td {
+  padding: 4px 8px;
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(58,58,58,0.4);
+}
+.moves-table tr:hover td { background: rgba(201,168,76,0.06); }
+.moves-table .move-num { color: var(--text-muted); font-size: 17px; }
+
+/* Chess controls */
+.chess-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Promotion modal */
+.promotion-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+.promotion-modal {
+  background: var(--bg-secondary);
+  border: 3px solid var(--accent-gold);
+  box-shadow: 6px 6px 0 #000;
+  padding: 24px;
+  text-align: center;
+}
+.promotion-title {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--accent-gold);
+  margin-bottom: 16px;
+}
+.promotion-pieces {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.promotion-piece {
+  width: 56px;
+  height: 56px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-glow);
+  cursor: pointer;
+  font-size: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.promotion-piece:hover {
+  border-color: var(--accent-gold);
+  background: var(--accent-brown);
+  transform: scale(1.1);
+}
+
+/* Timer */
+.timer {
+  font-family: var(--font-vt);
+  font-size: 28px;
+  color: var(--accent-gold);
+  text-align: center;
+  letter-spacing: 2px;
+  padding: 6px 12px;
+  border: 2px solid var(--border-glow);
+  background: var(--bg-primary);
+  display: inline-block;
+}
+
+.timer.low {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+  animation: pulse 0.5s ease infinite;
+}
+
+/* Turn indicator */
+.turn-indicator {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  padding: 6px 12px;
+  text-align: center;
+  letter-spacing: 1px;
+}
