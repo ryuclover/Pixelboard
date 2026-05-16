@@ -2,25 +2,42 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { randomBytes } = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const http = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS origin denied'));
+  },
+  methods: ['GET', 'POST']
+};
+
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "*", // allow frontend access
-    methods: ["GET", "POST"]
-  }
+  cors: corsOptions
 });
 
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret_pixelboard';
+const JWT_SECRET = process.env.JWT_SECRET;
 
-app.use(cors());
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Middleware to verify JWT
@@ -44,7 +61,8 @@ app.post('/auth/guest', async (req, res) => {
   try {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const guestUsername = `Guest_${randomSuffix}`;
-    const dummyPassword = await bcrypt.hash('guestpass123', 10);
+    const guestPassword = randomBytes(32).toString('hex');
+    const dummyPassword = await bcrypt.hash(guestPassword, 10);
     
     const user = await prisma.user.create({
       data: {
