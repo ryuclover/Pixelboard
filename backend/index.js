@@ -32,13 +32,23 @@ const io = new Server(server, {
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
 }
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
+
+const normalizeUsername = (username) =>
+  typeof username === 'string' ? username.trim() : '';
+const isValidPassword = (password) =>
+  typeof password === 'string' && password.length > 0 && password.length <= 128;
+const createToken = (user) =>
+  jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN
+  });
 
 // Middleware to verify JWT
 const authenticateToken = (req, res, next) => {
@@ -73,7 +83,7 @@ app.post('/auth/guest', async (req, res) => {
       }
     });
 
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
+    const token = createToken(user);
     res.json({ token, user: { id: user.id, username: user.username, avatar: user.avatar, coins: user.coins } });
   } catch (error) {
     res.status(500).json({ error: 'Could not create guest account' });
@@ -83,19 +93,24 @@ app.post('/auth/guest', async (req, res) => {
 // Register
 app.post('/auth/register', async (req, res) => {
   const { username, password } = req.body;
+  const normalizedUsername = normalizeUsername(username);
+
+  if (!normalizedUsername || !isValidPassword(password)) {
+    return res.status(400).json({ error: 'Invalid username or password' });
+  }
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
-        username,
+        username: normalizedUsername,
         password: hashedPassword,
         avatar: "🧙‍♂️",
         coins: 100 // Starting coins
       }
     });
 
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
+    const token = createToken(user);
     res.json({ token, user: { id: user.id, username: user.username, avatar: user.avatar, coins: user.coins } });
   } catch (error) {
     if (error.code === 'P2002') {
@@ -109,15 +124,20 @@ app.post('/auth/register', async (req, res) => {
 // Login
 app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
+  const normalizedUsername = normalizeUsername(username);
+
+  if (!normalizedUsername || !isValidPassword(password)) {
+    return res.status(400).json({ error: 'Invalid username or password' });
+  }
 
   try {
-    const user = await prisma.user.findUnique({ where: { username } });
+    const user = await prisma.user.findUnique({ where: { username: normalizedUsername } });
     if (!user) return res.status(400).json({ error: 'User not found' });
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(400).json({ error: 'Invalid password' });
 
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET);
+    const token = createToken(user);
     res.json({ token, user: { id: user.id, username: user.username, avatar: user.avatar, coins: user.coins } });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
