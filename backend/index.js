@@ -43,8 +43,12 @@ app.use(express.json({ limit: '100kb' }));
 
 const normalizeUsername = (username) =>
   typeof username === 'string' ? username.trim() : '';
-const isValidPassword = (password) =>
+const isValidPasswordInput = (password) =>
   typeof password === 'string' && password.length > 0 && password.length <= 128;
+const isValidPasswordForRegistration = (password) =>
+  typeof password === 'string' && password.length >= 8 && password.length <= 128;
+const isValidUsernameForRegistration = (username) =>
+  /^[a-zA-Z0-9_.-]{3,32}$/.test(username);
 const createToken = (user) =>
   jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN
@@ -95,7 +99,10 @@ app.post('/auth/register', async (req, res) => {
   const { username, password } = req.body;
   const normalizedUsername = normalizeUsername(username);
 
-  if (!normalizedUsername || !isValidPassword(password)) {
+  if (
+    !isValidUsernameForRegistration(normalizedUsername) ||
+    !isValidPasswordForRegistration(password)
+  ) {
     return res.status(400).json({ error: 'Invalid username or password' });
   }
 
@@ -126,7 +133,7 @@ app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
   const normalizedUsername = normalizeUsername(username);
 
-  if (!normalizedUsername || !isValidPassword(password)) {
+  if (!normalizedUsername || !isValidPasswordInput(password)) {
     return res.status(400).json({ error: 'Invalid username or password' });
   }
 
