@@ -41,6 +41,7 @@ The backend will run on `http://localhost:3001`.
 
 Backend environment variables:
 - `JWT_SECRET` (**required**): long random secret used to sign auth tokens.
+- `JWT_EXPIRES_IN` (optional): token lifetime (default `7d`).
 - `ALLOWED_ORIGINS` (recommended): comma-separated list of allowed frontend origins.
 - `PORT` (optional): backend port (default `3001`).
 
