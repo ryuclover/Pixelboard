@@ -43,7 +43,7 @@ app.use(express.json({ limit: '100kb' }));
 
 const normalizeUsername = (username) =>
   typeof username === 'string' ? username.trim() : '';
-const isValidPasswordInput = (password) =>
+const isValidPasswordForLogin = (password) =>
   typeof password === 'string' && password.length > 0 && password.length <= 128;
 const isValidPasswordForRegistration = (password) =>
   typeof password === 'string' && password.length >= 8 && password.length <= 128;
@@ -104,7 +104,7 @@ app.post('/auth/register', async (req, res) => {
     !isValidPasswordForRegistration(password)
   ) {
     return res.status(400).json({
-      error: 'Username must be 3-32 chars (letters, numbers, ._-), and password must be 8-128 chars'
+      error: 'Username must be 3-32 chars (letters, numbers, ._-), with no leading/trailing or repeated special chars; password must be 8-128 chars'
     });
   }
 
@@ -135,16 +135,16 @@ app.post('/auth/login', async (req, res) => {
   const { username, password } = req.body;
   const normalizedUsername = normalizeUsername(username);
 
-  if (!normalizedUsername || !isValidPasswordInput(password)) {
+  if (!normalizedUsername || !isValidPasswordForLogin(password)) {
     return res.status(400).json({ error: 'Invalid username or password' });
   }
 
   try {
     const user = await prisma.user.findUnique({ where: { username: normalizedUsername } });
-    if (!user) return res.status(400).json({ error: 'User not found' });
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(400).json({ error: 'Invalid password' });
+    if (!validPassword) return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = createToken(user);
     res.json({ token, user: { id: user.id, username: user.username, avatar: user.avatar, coins: user.coins } });
