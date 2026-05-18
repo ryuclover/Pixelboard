@@ -16,10 +16,11 @@ model User {
   password    String
   avatar      String   @default("🧙‍♂️")
   coins       Int      @default(0)
+  games       Game[]   @relation("GamePlayer")
+  gamesAsBlack Game[]  @relation("GamePlayer2")
   gamesPlayed Int      @default(0)
   gamesWon    Int      @default(0)
   createdAt   DateTime @default(now())
-  games       Game[]   @relation("GamePlayer")
   friendsOf   Friend[] @relation("FriendUser")
   friends     Friend[] @relation("FriendFriend")
   inventory   UserItem[]
@@ -66,7 +67,7 @@ model ChatMessage {
   userId    Int
   username  String
   avatar    String
-  message   String   @db.Text
+  message   String
   createdAt DateTime @default(now())
 }
 
@@ -77,7 +78,7 @@ model Game {
   playerId2   Int
   winnerId    Int?     // null if draw
   player1     User     @relation("GamePlayer", fields: [playerId1], references: [id], onDelete: Cascade)
-  player2     User     @relation(fields: [playerId2], references: [id], onDelete: Cascade)
+  player2     User     @relation("GamePlayer2", fields: [playerId2], references: [id], onDelete: Cascade)
   reason      String   // "checkmate", "stalemate", "timeout", "surrender", etc.
   moves       String   // JSON string of all moves
   createdAt   DateTime @default(now())
