@@ -4,13 +4,13 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Copiar package.json do backend
-COPY backend/package.json backend/package-lock.json ./
+COPY package.json package-lock.json ./
 
 # Instalar dependências
 RUN npm ci
 
 # Copiar código do backend
-COPY backend/ .
+COPY . .
 
 # Gerar Prisma client
 RUN npm run build
