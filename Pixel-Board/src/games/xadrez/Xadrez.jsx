@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import { useSocket } from '../../hooks/useSocket';
+import axios from 'axios';
 import './Xadrez.css';
 
 import moveSoundFile from './assets/move.wav';
@@ -20,12 +21,14 @@ import wq from './assets/wq.png';
 import wr from './assets/wr.png';
 
 const pieceImages = { bb, bk, bn, bp, bq, br, wb, wk, wn, wp, wq, wr };
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function Xadrez() {
   const [game, setGame] = useState(new Chess());
   const [gameMode, setGameMode] = useState(null); // null, 'local', 'bot', 'online'
   const [matchStatus, setMatchStatus] = useState(null); // 'searching', 'playing'
   const [playerColor, setPlayerColor] = useState('w'); // For online mode
+  const [opponentId, setOpponentId] = useState(null); // Track opponent for result tracking
   const { socket } = useSocket();
   const [moveHistory, setMoveHistory] = useState([]);
   const [whiteTime, setWhiteTime] = useState(600);
@@ -33,6 +36,7 @@ export default function Xadrez() {
   const [gameOver, setGameOver] = useState(null);
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
+  const gameOverProcessedRef = useRef(false);
   
   const moveSound = useRef(null);
   const captureSound = useRef(null);
@@ -53,12 +57,37 @@ export default function Xadrez() {
     } catch (e) {}
   }, []);
 
+  // Save game result when online match ends
+  useEffect(() => {
+    if (gameMode !== 'online' || !gameOver || !opponentId || gameOverProcessedRef.current) return;
+    
+    gameOverProcessedRef.current = true;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const winnerId = gameOver.winner === 'White' ? (playerColor === 'w' ? 'current' : opponentId) 
+                   : (playerColor === 'b' ? 'current' : opponentId);
+    
+    axios.post(`${API_URL}/games/result`, 
+      {
+        gameType: 'chess',
+        opponentId,
+        winnerId: winnerId === 'current' ? undefined : winnerId,
+        reason: gameOver.reason,
+        moves: moveHistory
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).catch(err => console.error('Failed to save game result:', err));
+  }, [gameMode, gameOver, opponentId, playerColor, moveHistory]);
+
   // Socket listener
   useEffect(() => {
     if (!socket || gameMode !== 'online') return;
 
     const onMatchFound = (data) => {
       setPlayerColor(data.color);
+      setOpponentId(data.opponentId);
       setMatchStatus('playing');
       setGame(new Chess());
       setMoveHistory([]);
@@ -67,6 +96,7 @@ export default function Xadrez() {
       setGameOver(null);
       setSelectedSquare(null);
       setLegalMoves([]);
+      gameOverProcessedRef.current = false;
     };
 
     const onOpponentMoved = (data) => {

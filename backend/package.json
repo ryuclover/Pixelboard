@@ -4,14 +4,18 @@
     "main": "index.js",
     "scripts": {
         "start": "node index.js",
-        "build": "npx prisma@5.11.0 generate"
+        "build": "npx prisma@5.11.0 generate",
+        "seed": "node seed.js",
+        "dev": "node index.js"
     },
     "dependencies": {
         "@prisma/client": "^5.11.0",
         "bcrypt": "^6.0.0",
+        "chess.js": "^1.4.0",
         "cors": "^2.8.6",
         "dotenv": "^17.4.2",
         "express": "^5.2.1",
+        "express-rate-limit": "^8.5.2",
         "jsonwebtoken": "^9.0.3",
         "socket.io": "^4.8.3"
     },

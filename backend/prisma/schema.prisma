@@ -19,4 +19,70 @@ model User {
   gamesPlayed Int      @default(0)
   gamesWon    Int      @default(0)
   createdAt   DateTime @default(now())
+  games       Game[]   @relation("GamePlayer")
+  friendsOf   Friend[] @relation("FriendUser")
+  friends     Friend[] @relation("FriendFriend")
+  inventory   UserItem[]
+}
+
+model Friend {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  friendId  Int
+  user      User     @relation("FriendUser", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("FriendFriend", fields: [friendId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+}
+
+model ShopItem {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String
+  icon        String    // emoji or image path
+  price       Int       // coins
+  type        String    // "avatar", "border", "cosmetic"
+  createdAt   DateTime  @default(now())
+  buyers      UserItem[]
+}
+
+model UserItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  itemId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item      ShopItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  boughtAt  DateTime @default(now())
+
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  username  String
+  avatar    String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model Game {
+  id          Int      @id @default(autoincrement())
+  gameType    String   // "chess" or "damas"
+  playerId1   Int
+  playerId2   Int
+  winnerId    Int?     // null if draw
+  player1     User     @relation("GamePlayer", fields: [playerId1], references: [id], onDelete: Cascade)
+  player2     User     @relation(fields: [playerId2], references: [id], onDelete: Cascade)
+  reason      String   // "checkmate", "stalemate", "timeout", "surrender", etc.
+  moves       String   // JSON string of all moves
+  createdAt   DateTime @default(now())
+
+  @@index([playerId1])
+  @@index([playerId2])
+  @@index([winnerId])
 }

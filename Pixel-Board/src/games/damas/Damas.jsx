@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Checkers } from './checkersLogic';
 import { useSocket } from '../../hooks/useSocket';
+import axios from 'axios';
 import './Damas.css';
 
 import whiteManImg from './assets/w_man.svg';
@@ -8,16 +9,20 @@ import whiteKingImg from './assets/w_king.svg';
 import blackManImg from './assets/b_man.svg';
 import blackKingImg from './assets/b_king.svg';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export default function Damas() {
   const [game, setGame] = useState(new Checkers());
   const [gameMode, setGameMode] = useState(null); // null, 'local', 'bot', 'online'
   const [matchStatus, setMatchStatus] = useState(null);
   const [playerColor, setPlayerColor] = useState('w');
+  const [opponentId, setOpponentId] = useState(null);
   const { socket } = useSocket();
   const [whiteTime, setWhiteTime] = useState(600);
   const [blackTime, setBlackTime] = useState(600);
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [legalMoves, setLegalMoves] = useState([]);
+  const gameOverProcessedRef = useRef(false);
   
   const moveSound = useRef(null);
   const captureSound = useRef(null);
@@ -45,18 +50,42 @@ export default function Damas() {
     } catch (e) {}
   }, []);
 
+  // Save game result when online match ends
+  useEffect(() => {
+    if (gameMode !== 'online' || !game.isGameOver() || !opponentId || gameOverProcessedRef.current) return;
+    
+    gameOverProcessedRef.current = true;
+    
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    axios.post(`${API_URL}/games/result`, 
+      {
+        gameType: 'damas',
+        opponentId,
+        winnerId: game.winner === 'White' ? (playerColor === 'w' ? undefined : opponentId) 
+                : (playerColor === 'b' ? undefined : opponentId),
+        reason: game.gameOverReason || 'Game Ended',
+        moves: game.history
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    ).catch(err => console.error('Failed to save game result:', err));
+  }, [gameMode, game, opponentId, playerColor]);
+
   // Socket listener
   useEffect(() => {
     if (!socket || gameMode !== 'online') return;
 
     const onMatchFound = (data) => {
       setPlayerColor(data.color);
+      setOpponentId(data.opponentId);
       setMatchStatus('playing');
       setGame(new Checkers());
       setWhiteTime(600);
       setBlackTime(600);
       setSelectedSquare(null);
       setLegalMoves([]);
+      gameOverProcessedRef.current = false;
     };
 
     const onOpponentMoved = (data) => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Xadrez from './games/xadrez/Xadrez'
 import Damas from './games/damas/Damas'
+import { io } from 'socket.io-client'
 import './App.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -13,6 +14,13 @@ function App() {
   const [authType, setAuthType] = useState('login'); // 'login' or 'register'
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [userRank, setUserRank] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [socket, setSocket] = useState(null);
+  const [shopItems, setShopItems] = useState([]);
+  const [userInventory, setUserInventory] = useState([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -24,6 +32,80 @@ function App() {
       .catch(() => localStorage.removeItem('token'));
     }
   }, []);
+
+  // Load leaderboard
+  useEffect(() => {
+    axios.get(`${API_URL}/leaderboard`)
+      .then(res => {
+        setLeaderboard(res.data);
+        if (user) {
+          const rank = res.data.findIndex(p => p.id === user.id) + 1;
+          setUserRank(rank || null);
+        }
+      })
+      .catch(err => console.error('Failed to load leaderboard:', err));
+  }, [user, currentView]);
+
+  // Load shop items
+  useEffect(() => {
+    axios.get(`${API_URL}/shop`)
+      .then(res => setShopItems(res.data))
+      .catch(err => console.error('Failed to load shop:', err));
+  }, []);
+
+  // Load user inventory
+  useEffect(() => {
+    if (!user) return;
+    const token = localStorage.getItem('token');
+    axios.get(`${API_URL}/inventory`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => setUserInventory(res.data.map(ui => ui.id)))
+      .catch(err => console.error('Failed to load inventory:', err));
+  }, [user]);
+
+  // Initialize socket and load chat
+  useEffect(() => {
+    const newSocket = io(API_URL);
+    setSocket(newSocket);
+
+    newSocket.on('connect', () => console.log('Socket connected'));
+    
+    // Load chat history
+    axios.get(`${API_URL}/chat`)
+      .then(res => setChatMessages(res.data))
+      .catch(err => console.error('Failed to load chat:', err));
+
+    // Listen for new chat messages
+    newSocket.on('chat_message', (message) => {
+      setChatMessages(prev => [...prev, message]);
+    });
+
+    return () => newSocket.close();
+  }, []);
+
+  const handleChatSend = () => {
+    if (!chatInput.trim() || !user || !socket) return;
+    
+    socket.emit('chat_message', {
+      userId: user.id,
+      username: user.username,
+      avatar: user.avatar,
+      message: chatInput
+    });
+    setChatInput('');
+  };
+
+  const handleBuyItem = async (itemId) => {
+    if (!user) return;
+    const token = localStorage.getItem('token');
+    try {
+      await axios.post(`${API_URL}/shop/buy/${itemId}`, {}, 
+        { headers: { Authorization: `Bearer ${token}` } });
+      setUserInventory([...userInventory, itemId]);
+      setUser({ ...user, coins: user.coins - shopItems.find(i => i.id === itemId).price });
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to buy item');
+    }
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -174,14 +256,27 @@ function App() {
             {/* RIGHT COLUMN: GLOBAL CHAT */}
             <div className="chat-panel">
               <div className="friends-header">GLOBAL CHAT</div>
-              <div className="chat-messages">
-                <div className="chat-message chat-system">
-                  <span className="chat-text">Welcome to Pixel Board Global Chat!</span>
-                </div>
+              <div className="chat-messages" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className="chat-message" style={{ marginBottom: '8px', padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '8px', color: 'var(--text-muted)' }}>
+                      {msg.avatar} <span style={{ color: 'var(--accent-gold)' }}>{msg.username}</span>
+                    </div>
+                    <span className="chat-text" style={{ fontSize: '9px', marginTop: '4px', display: 'block' }}>{msg.message}</span>
+                  </div>
+                ))}
               </div>
               <div className="chat-input-area">
-                <input type="text" className="chat-input" placeholder="Type..." />
-                <button className="chat-send-btn">▶</button>
+                <input 
+                  type="text" 
+                  className="chat-input" 
+                  placeholder={user ? "Type message..." : "Login to chat"}
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                  disabled={!user}
+                />
+                <button className="chat-send-btn" onClick={handleChatSend} disabled={!user}>▶</button>
               </div>
             </div>
           </div>
@@ -238,16 +333,30 @@ function App() {
             </div>
 
             {/* RIGHT COLUMN: CHAT */}
+            {/* RIGHT COLUMN: CHAT */}
             <div className="chat-panel">
               <div className="friends-header">GLOBAL CHAT</div>
-              <div className="chat-messages">
-                <div className="chat-message chat-system">
-                  <span className="chat-text">Welcome! Find a match here.</span>
-                </div>
+              <div className="chat-messages" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                {chatMessages.map((msg, idx) => (
+                  <div key={idx} className="chat-message" style={{ marginBottom: '8px', padding: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '8px', color: 'var(--text-muted)' }}>
+                      {msg.avatar} <span style={{ color: 'var(--accent-gold)' }}>{msg.username}</span>
+                    </div>
+                    <span className="chat-text" style={{ fontSize: '9px', marginTop: '4px', display: 'block' }}>{msg.message}</span>
+                  </div>
+                ))}
               </div>
               <div className="chat-input-area">
-                <input type="text" className="chat-input" placeholder="Type..." />
-                <button className="chat-send-btn">▶</button>
+                <input 
+                  type="text" 
+                  className="chat-input" 
+                  placeholder={user ? "Type message..." : "Login to chat"}
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
+                  disabled={!user}
+                />
+                <button className="chat-send-btn" onClick={handleChatSend} disabled={!user}>▶</button>
               </div>
             </div>
           </div>
@@ -274,31 +383,26 @@ function App() {
         {currentView === 'shop' && (
           <div className="animate-fade-in panel-window">
             <div className="panel-header">
-              <span>ARCADE SHOP</span>
+              <span>ARCADE SHOP - 🪙 {user?.coins || 0}</span>
               <div className="panel-close-btn" onClick={() => setCurrentView('games')}>X</div>
             </div>
             <div className="panel-content">
               <div className="shop-grid">
-                <div className="shop-item">
-                  <div className="shop-item-icon">🐉</div>
-                  <span className="shop-item-title">Dragon's Hoard</span>
-                  <div className="shop-item-price">🪙 300</div>
-                </div>
-                <div className="shop-item">
-                  <div className="shop-item-icon">🏴‍☠️</div>
-                  <span className="shop-item-title">Shipwreck Isle</span>
-                  <div className="shop-item-price">🪙 100</div>
-                </div>
-                <div className="shop-item">
-                  <div className="shop-item-icon">🃏</div>
-                  <span className="shop-item-title">Poker Royale</span>
-                  <div className="shop-item-price">🪙 200</div>
-                </div>
-                <div className="shop-item">
-                  <div className="shop-item-icon">🖼️</div>
-                  <span className="shop-item-title">Custom Borders</span>
-                  <div className="shop-item-price">🪙 100</div>
-                </div>
+                {shopItems.map(item => (
+                  <div key={item.id} className="shop-item" style={{ cursor: 'pointer', opacity: userInventory.includes(item.id) ? 0.5 : 1 }}>
+                    <div className="shop-item-icon">{item.icon}</div>
+                    <span className="shop-item-title">{item.name}</span>
+                    <div className="shop-item-price" style={{ color: user?.coins >= item.price ? 'var(--accent-gold)' : 'var(--accent-red)' }}>🪙 {item.price}</div>
+                    <button 
+                      className="btn btn-primary" 
+                      style={{ fontSize: '8px', padding: '6px 12px', marginTop: '8px', width: '100%' }}
+                      onClick={() => handleBuyItem(item.id)}
+                      disabled={userInventory.includes(item.id) || !user || user.coins < item.price}
+                    >
+                      {userInventory.includes(item.id) ? 'OWNED' : 'BUY'}
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -307,53 +411,63 @@ function App() {
         {currentView === 'profile' && (
           <div className="animate-fade-in panel-window">
             <div className="panel-header">
-              <span>USER PROFILE: PixelPaladin</span>
+              <span>USER PROFILE: {user ? user.username.toUpperCase() : 'GUEST'}</span>
               <div className="panel-close-btn" onClick={() => setCurrentView('games')}>X</div>
             </div>
             <div className="panel-content profile-layout">
               <div className="profile-sidebar">
                 <div className="profile-box" style={{ textAlign: 'center' }}>
-                  <div className="profile-avatar-container">🛡️</div>
-                  <h3 className="text-pixel" style={{ fontSize: '10px', color: 'var(--accent-gold)' }}>Paladin</h3>
+                  <div className="profile-avatar-container" style={{ fontSize: '48px' }}>{user?.avatar || '👻'}</div>
+                  <h3 className="text-pixel" style={{ fontSize: '10px', color: 'var(--accent-gold)' }}>{user?.username || 'GUEST'}</h3>
+                  <div style={{ fontSize: '8px', color: 'var(--text-secondary)', marginTop: '4px' }}>🪙 {user?.coins || 0}</div>
                 </div>
                 <div className="profile-box">
                   <h3 className="text-pixel" style={{ fontSize: '8px', marginBottom: '12px', textAlign: 'center' }}>STATS</h3>
-                  <div className="profile-stats-row"><span>Games Played:</span> <span style={{color: 'var(--text-primary)'}}>229</span></div>
-                  <div className="profile-stats-row"><span>Win Rate:</span> <span style={{color: 'var(--text-primary)'}}>42.3%</span></div>
-                  <div className="profile-stats-row" style={{flexDirection: 'column', marginTop: '8px'}}>
-                    <span style={{fontSize: '12px'}}>Most Played Game:</span>
-                    <span style={{color: 'var(--accent-gold)', marginTop: '4px'}}>Chess Classic</span>
-                  </div>
+                  <div className="profile-stats-row"><span>Games Played:</span> <span style={{color: 'var(--text-primary)'}}>{user?.gamesPlayed || 0}</span></div>
+                  <div className="profile-stats-row"><span>Games Won:</span> <span style={{color: 'var(--accent-gold)'}}>{user?.gamesWon || 0}</span></div>
+                  <div className="profile-stats-row"><span>Win Rate:</span> <span style={{color: 'var(--text-primary)'}}>{user?.gamesPlayed > 0 ? ((user.gamesWon / user.gamesPlayed) * 100).toFixed(1) : 0}%</span></div>
                 </div>
               </div>
               <div className="profile-main">
                 <div className="profile-box" style={{ height: '100%' }}>
                   <h3 className="text-pixel" style={{ fontSize: '10px', marginBottom: '16px', textAlign: 'center' }}>ACHIEVEMENTS</h3>
                   <div className="achievements-grid">
-                    <div className="achievement-badge unlocked">
-                      <div className="achievement-icon">🐉</div>
-                      <span className="achievement-title">Dragon Slayer</span>
-                    </div>
-                    <div className="achievement-badge unlocked">
-                      <div className="achievement-icon">🌲</div>
-                      <span className="achievement-title">Forest Explorer</span>
-                    </div>
-                    <div className="achievement-badge">
-                      <div className="achievement-icon">🔒</div>
-                      <span className="achievement-title">Space Ace</span>
-                    </div>
-                    <div className="achievement-badge">
-                      <div className="achievement-icon">🔒</div>
-                      <span className="achievement-title">High Roller</span>
-                    </div>
-                    <div className="achievement-badge">
-                      <div className="achievement-icon">🔒</div>
-                      <span className="achievement-title">Grandmaster</span>
-                    </div>
-                    <div className="achievement-badge unlocked">
-                      <div className="achievement-icon">🛡️</div>
-                      <span className="achievement-title">First Win</span>
-                    </div>
+                    {user?.gamesWon >= 1 && (
+                      <div className="achievement-badge unlocked">
+                        <div className="achievement-icon">🏆</div>
+                        <span className="achievement-title">First Win</span>
+                      </div>
+                    )}
+                    {user?.gamesPlayed >= 10 && (
+                      <div className="achievement-badge unlocked">
+                        <div className="achievement-icon">⚡</div>
+                        <span className="achievement-title">10 Matches</span>
+                      </div>
+                    )}
+                    {user?.gamesPlayed >= 50 && (
+                      <div className="achievement-badge unlocked">
+                        <div className="achievement-icon">🔥</div>
+                        <span className="achievement-title">50 Matches</span>
+                      </div>
+                    )}
+                    {user && user.gamesWon / (user.gamesPlayed || 1) >= 0.6 && (
+                      <div className="achievement-badge unlocked">
+                        <div className="achievement-icon">👑</div>
+                        <span className="achievement-title">60% Win Rate</span>
+                      </div>
+                    )}
+                    {!user?.gamesWon && (
+                      <div className="achievement-badge">
+                        <div className="achievement-icon">🔒</div>
+                        <span className="achievement-title">First Win</span>
+                      </div>
+                    )}
+                    {user?.gamesPlayed < 10 && (
+                      <div className="achievement-badge">
+                        <div className="achievement-icon">🔒</div>
+                        <span className="achievement-title">10 Matches</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -364,55 +478,42 @@ function App() {
         {currentView === 'community' && (
           <div className="animate-fade-in panel-window">
             <div className="panel-header">
-              <span>RANKINGS: SEASON 3</span>
+              <span>LEADERBOARD</span>
               <div className="panel-close-btn" onClick={() => setCurrentView('games')}>X</div>
             </div>
             <div className="panel-content">
-              <div className="rankings-tabs">
-                <div className="ranking-tab active">Overall</div>
-                <div className="ranking-tab">Chess Classic</div>
-                <div className="ranking-tab">Space Frontiers</div>
-                <div className="ranking-tab">Poker Royale</div>
-              </div>
               <table className="leaderboard-table">
                 <thead>
                   <tr>
                     <th>RANK</th>
                     <th>PLAYER</th>
-                    <th style={{textAlign: 'right'}}>TOTAL SCORE</th>
+                    <th style={{textAlign: 'right'}}>WINS</th>
+                    <th style={{textAlign: 'right'}}>PLAYED</th>
+                    <th style={{textAlign: 'right'}}>WIN RATE</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="rank-1">
-                    <td><span className="rank-icon">👑</span>1</td>
-                    <td>KingPawn</td>
-                    <td style={{textAlign: 'right'}}>34,328</td>
-                  </tr>
-                  <tr className="rank-2">
-                    <td><span className="rank-icon">⭐</span>2</td>
-                    <td>PixelQueen</td>
-                    <td style={{textAlign: 'right'}}>32,150</td>
-                  </tr>
-                  <tr className="rank-3">
-                    <td><span className="rank-icon">⭐</span>3</td>
-                    <td>StarSailor</td>
-                    <td style={{textAlign: 'right'}}>31,900</td>
-                  </tr>
-                  <tr>
-                    <td>4</td>
-                    <td>RogueKnight</td>
-                    <td style={{textAlign: 'right'}}>28,450</td>
-                  </tr>
-                  <tr>
-                    <td>5</td>
-                    <td>MageTower</td>
-                    <td style={{textAlign: 'right'}}>27,100</td>
-                  </tr>
+                  {leaderboard.slice(0, 50).map((player, idx) => (
+                    <tr key={player.id} className={idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : idx === 2 ? 'rank-3' : ''}>
+                      <td>
+                        <span className="rank-icon">
+                          {idx === 0 ? '👑' : idx === 1 ? '⭐' : idx === 2 ? '⭐' : idx < 10 ? '🔸' : ''}
+                        </span>
+                        {player.rank}
+                      </td>
+                      <td>{player.username} {player.avatar}</td>
+                      <td style={{textAlign: 'right'}}>{player.gamesWon}</td>
+                      <td style={{textAlign: 'right'}}>{player.gamesPlayed}</td>
+                      <td style={{textAlign: 'right', color: 'var(--accent-gold)'}}>{player.winRate}%</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
-              <div style={{ textAlign: 'center', marginTop: '16px', fontFamily: 'var(--font-pixel)', fontSize: '8px', color: 'var(--accent-gold)' }}>
-                MY RANK: 1,234
-              </div>
+              {userRank && user && (
+                <div style={{ textAlign: 'center', marginTop: '16px', fontFamily: 'var(--font-pixel)', fontSize: '8px', color: 'var(--accent-gold)', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '4px' }}>
+                  YOUR RANK: #{userRank}
+                </div>
+              )}
             </div>
           </div>
         )}
