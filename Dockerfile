@@ -16,4 +16,4 @@ COPY backend ./
 RUN npx prisma generate
 
 # Run migrations and start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node index.js"]
+CMD ["sh", "-c", "npx prisma db push && node index.js"]
